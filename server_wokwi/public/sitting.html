@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sitting Time</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="title">Smart Desktop Atmosphere</div>
+        <div class="subtitle">Sitting Time Dashboard</div>
+      </div>
+
+      <div class="top-actions" style="display:flex; gap:10px; align-items:center;">
+        <a class="btn" href="/">← กลับหน้า Dashboard</a>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="content">
+        <div class="card" style="padding-bottom: 20px;">
+          <h2>📈 กราฟเวลาการนั่ง (ย้อนหลัง 7 วัน)</h2>
+          <div style="position: relative; height: 300px;">
+            <canvas id="sittingChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>📊 สรุปเวลาการนั่ง (ย้อนหลัง 7 วัน)</h2>
+          <div class="mono small" id="summaryBox">กำลังโหลด...</div>
+        </div>
+
+        <div class="card">
+          <h2>🧾 รายการ Session การนั่ง (ล่าสุด)</h2>
+          <div class="mono small" style="overflow:auto;">
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding:8px;">เริ่ม</th>
+                  <th style="text-align:left; padding:8px;">จบ</th>
+                  <th style="text-align:right; padding:8px;">นาที</th>
+                  <th style="text-align:right; padding:8px;">session_id</th>
+                </tr>
+              </thead>
+              <tbody id="sessionsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="card">
+          <h2>💡 หมายเหตุ</h2>
+          <div class="muted">
+            - “ลุกจริง” เมื่อไม่มี motion เกิน 10 นาที<br/>
+            - นั่งครบ 60 นาทีจะมี sit_alert และ Telegram<br/>
+            - หน้า Table เดิมยังเป็น telemetry เหมือนเดิม
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="/sitting.js"></script>
+</body>
+</html>

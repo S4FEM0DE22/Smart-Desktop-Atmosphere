@@ -1,0 +1,6 @@
+server/node_modules/
+server/*.db
+server/*.sqlite
+.env
+.DS_Store
+Thumbs.db

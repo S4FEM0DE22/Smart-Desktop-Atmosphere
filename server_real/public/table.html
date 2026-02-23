@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Telemetry Database</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div class="bg-shape s1"></div>
+  <div class="bg-shape s2"></div>
+
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <h1>📊 Telemetry Database</h1>
+   <p class="sub">กดปุ่ม Edit เพื่อแก้ไขข้อมูล • ลบต้องใส่ Admin Key</p>
+      </div>
+      <div class="hero-right">
+        <input id="adm" class="adm-input" placeholder="🔑 Admin Key">
+        <button class="nav-btn" onclick="load()">🔄 Refresh</button>
+        <a href="./lcd_log.html" class="nav-btn">🧾 LCD Log</a>
+        <a href="./index.html" class="nav-btn">← Dashboard</a>
+      </div>
+    </header>
+
+    <div class="card">
+      <h2>🧠 Telemetry ล่าสุด 50 แถว</h2>
+      <div class="muted">Tip: กดปุ่ม Edit เพื่อแก้ไข PIR หรือ LDR</div>
+
+      <div id="editModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 18px; min-width: 400px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+          <h3 style="margin: 0 0 20px 0; color: #1e293b;">แก้ไขข้อมูล</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div>
+              <label style="font-size: 12px; color: #64748b; font-weight: 600;">PIR</label>
+              <input id="pirInput" type="number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;">
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #64748b; font-weight: 600;">LDR</label>
+              <input id="ldrInput" type="number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;">
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #64748b; font-weight: 600;">Relay</label>
+              <input id="relayInput" type="number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;">
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #64748b; font-weight: 600;">Auto</label>
+              <input id="autoInput" type="number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;">
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #64748b; font-weight: 600;">WiFi</label>
+              <input id="wifiInput" type="number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;">
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #64748b; font-weight: 600;">RSSI</label>
+              <input id="rssiInput" type="number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box;">
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button id="saveEditBtn" class="btn btn-primary" style="flex: 1;">💾 Save</button>
+            <button id="cancelEditBtn" class="btn btn-ghost" style="flex: 1;">ยกเลิก</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Time</th><th>PIR</th><th>LDR</th><th>Relay</th><th>Auto</th><th>WiFi</th><th>RSSI</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+let currentEditData = null;
+
+function key(){ return document.getElementById("adm").value; }
+
+async function api(url, opt){
+  const r = await fetch(url, opt);
+  const j = await r.json();
+  if(!r.ok) throw new Error(j?.error || "API error");
+  return j;
+}
+
+async function load(){
+  const res = await api("/api/table");
+  const rows = res.rows || [];
+  let html = "";
+
+  rows.forEach(d=>{
+    html += `<tr id="row-${d.id}">
+      <td>${d.id}</td>
+      <td>${d.time}</td>
+      <td>${d.pir}</td>
+      <td>${d.ldr}</td>
+      <td>${d.relay}</td>
+      <td>${d.auto}</td>
+      <td>${d.wifi}</td>
+      <td>${d.rssi}</td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="showEditModal(${d.id}, ${d.pir}, ${d.ldr}, ${d.relay}, ${d.auto}, ${d.wifi}, ${d.rssi})">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delRow(${d.id})">🗑 Delete</button>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById("tb").innerHTML = html || `<tr><td colspan="9">ยังไม่มีข้อมูล</td></tr>`;
+}
+
+function showEditModal(id, pir, ldr, relay, auto, wifi, rssi){
+  if(!key()){
+    alert("ใส่ Admin Key ก่อน");
+    return;
+  }
+
+  currentEditData = { id, pir, ldr, relay, auto, wifi, rssi };
+  document.getElementById("pirInput").value = pir;
+  document.getElementById("ldrInput").value = ldr;
+  document.getElementById("relayInput").value = relay;
+  document.getElementById("autoInput").value = auto;
+  document.getElementById("wifiInput").value = wifi;
+  document.getElementById("rssiInput").value = rssi;
+
+  const modal = document.getElementById("editModal");
+  modal.style.display = "flex";
+
+  document.getElementById("saveEditBtn").onclick = saveEditRow;
+  document.getElementById("cancelEditBtn").onclick = () => { modal.style.display = "none"; };
+}
+
+async function saveEditRow(){
+  if(!key()){
+    alert("ใส่ Admin Key ก่อน");
+    return;
+  }
+
+  const newData = {
+    pir: Number(document.getElementById("pirInput").value),
+    ldr: Number(document.getElementById("ldrInput").value),
+    relay: Number(document.getElementById("relayInput").value),
+    auto: Number(document.getElementById("autoInput").value),
+    wifi: Number(document.getElementById("wifiInput").value),
+    rssi: Number(document.getElementById("rssiInput").value)
+  };
+
+  try{
+    await api(`/api/telemetry/${currentEditData.id}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        "x-admin-key": key()
+      },
+      body: JSON.stringify(newData)
+    });
+    document.getElementById("editModal").style.display = "none";
+    load();
+  }catch(e){
+    alert("บันทึกไม่สำเร็จ: " + e.message);
+  }
+}
+
+async function delRow(id){
+  if(!key()) return alert("ใส่ Admin Key ก่อน");
+  if(!confirm("ลบ ID "+id+" ?")) return;
+
+  try{
+    await api(`/api/telemetry/${id}`,{
+      method:"DELETE",
+      headers:{ "x-admin-key": key() }
+    });
+    load();
+  }catch(e){
+    alert("ลบไม่สำเร็จ: " + e.message);
+  }
+}
+
+load();
+setInterval(load, 3000);
+</script>
+</script>
+</body>
+</html>

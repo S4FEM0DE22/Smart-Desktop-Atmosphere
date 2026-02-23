@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LCD Message Log</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div class="bg-shape s1"></div>
+  <div class="bg-shape s2"></div>
+
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <h1>🧾 LCD Message Log</h1>
+        <p class="sub">ประวัติการเปลี่ยนข้อความ LCD Standby (บรรทัด 2–3)</p>
+      </div>
+      <div class="hero-right">
+        <button class="nav-btn" onclick="load()">🔄 Refresh</button>
+        <a href="./table.html" class="nav-btn">📊 Telemetry DB</a>
+        <a href="./index.html" class="nav-btn">← Dashboard</a>
+      </div>
+    </header>
+
+    <div class="card">
+      <h2>📚 รายการล่าสุด</h2>
+      <div class="table-wrapper" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Time</th><th>Line2</th><th>Line3</th><th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+async function load(){
+  const r = await fetch("/api/lcd/history", { cache:"no-store" });
+  const j = await r.json();
+  const rows = j.rows || [];
+
+  let html = "";
+  rows.forEach(x=>{
+    const time = new Date(x.ts).toLocaleString();
+    html += `<tr>
+      <td>${x.id}</td>
+      <td>${time}</td>
+      <td>${x.line2}</td>
+      <td>${x.line3}</td>
+      <td>${x.source}</td>
+    </tr>`;
+  });
+
+  document.getElementById("tb").innerHTML =
+    html || `<tr><td colspan="5">ยังไม่มี log</td></tr>`;
+}
+load();
+setInterval(load, 3000);
+</script>
+</body>
+</html>

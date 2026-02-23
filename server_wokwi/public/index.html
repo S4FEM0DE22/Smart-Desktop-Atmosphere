@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Desktop Atmosphere Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div class="bg-shape s1"></div>
+  <div class="bg-shape s2"></div>
+
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <h1>🖥️ Smart Desktop Atmosphere</h1>
+        <p class="sub">แดชบอร์ดควบคุมโคมไฟ + แสดงค่า PIR/LDR แบบเรียลไทม์ (MQTT → DB → Web)</p>
+      </div>
+
+      <div class="hero-right">
+        <button id="lcdModalBtn" class="nav-btn">🖥️ LCD Standby</button>
+        <a href="./table.html" class="nav-btn">📊 Telemetry DB</a>
+        <a href="./lcd_log.html" class="nav-btn">🧾 LCD Log</a>
+        <a href="./sitting.html" class="nav-btn">🪑 Sitting Time</a>
+
+        <div class="status-pill" id="statusPill">
+          <span class="status-indicator"></span>
+          <span class="status-text">Waiting...</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="summary">
+      <div class="summary-card">
+        <div class="summary-icon">💡</div>
+        <div class="summary-meta">
+          <div class="summary-label">Relay (Lamp)</div>
+          <div id="sumRelayValue" class="summary-value">-</div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button id="on" class="btn btn-primary" style="flex: 1; font-size: 12px; padding: 8px;">ON</button>
+            <button id="off" class="btn btn-danger" style="flex: 1; font-size: 12px; padding: 8px;">OFF</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">🤖</div>
+        <div class="summary-meta">
+          <div class="summary-label">Mode</div>
+          <div id="sumAutoValue" class="summary-value">-</div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button id="autoOn" class="btn" style="flex: 1; font-size: 12px; padding: 8px;">AUTO</button>
+            <button id="autoOff" class="btn btn-ghost" style="flex: 1; font-size: 12px; padding: 8px;">MANUAL</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">🛜</div>
+        <div class="summary-meta">
+          <div class="summary-label">WiFi</div>
+          <div id="sumWifiValue" class="summary-value">-</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout-main-sidebar">
+      <!-- MAIN -->
+      <div class="main-content">
+        <div class="card accent">
+          <h2>🧭 สถานะล่าสุด</h2>
+          <div id="status" class="status-panel">กำลังโหลด...</div>
+          <div id="cmdResult" class="mono" style="margin-top: 15px;"></div>
+        </div>
+
+        <section class="full-width-section">
+          <div class="card">
+            <h2>📈 กราฟย้อนหลัง (30 ข้อมูล)</h2>
+            <div id="chartContainer" style="position: relative; height: 320px;">
+              <canvas id="historyChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="full-width-section">
+          <div class="card">
+            <h2>🪑 กราฟเวลาการนั่ง (ย้อนหลัง 7 วัน)</h2>
+            <div id="sittingChartContainer" style="position: relative; height: 300px;">
+              <canvas id="sittingChart"></canvas>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="card">
+          <h2>🪑 สถานะการนั่ง</h2>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+            <span id="seatPill" class="pill warn">UNKNOWN</span>
+            <div class="muted" id="seatText">กำลังโหลด...</div>
+          </div>
+          <div class="mono small" style="margin-top:10px;" id="seatDetail">-</div>
+        </div>
+
+        <div class="card">
+          <h2>🚨 เตือนนั่งนาน</h2>
+          <div id="sitWarnCard" class="mono small" style="border:1px solid rgba(239,68,68,.22); border-radius:10px; padding:10px; background:rgba(239,68,68,.06);">
+            -
+          </div>
+          <div class="divider" style="margin:12px 0;"></div>
+          <div id="sitAlerts" class="mono small" style="max-height: 180px; overflow-y: auto; border: 1px solid rgba(37,99,235,.12); border-radius: 10px; padding: 10px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>🗂️ เหตุการณ์ล่าสุด</h2>
+        <div class="card">
+          <h2>🗂️ เหตุการณ์ล่าสุด</h2>
+          <div id="events" class="mono small" style="max-height: 250px; overflow-y: auto; border: 1px solid rgba(37,99,235,.12); border-radius: 10px; padding: 10px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>🧾 History (raw)</h2>
+          <div id="history" class="mono small" style="max-height: 250px; overflow-y: auto; border: 1px solid rgba(37,99,235,.12); border-radius: 10px; padding: 10px;"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- LCD Standby Modal -->
+  <div id="lcdModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🖥️ LCD Standby (20x4)</h2>
+        <button class="modal-close" id="lcdModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="muted" style="margin-top:0">
+          แก้ได้เฉพาะ <b>บรรทัดที่ 2 และ 3</b> เท่านั้น<br/>
+          บรรทัดที่ 1 เป็น <b>== STANDBY MODE ==</b> เสมอ
+        </p>
+
+        <div class="lcd-line-group">
+          <label>บรรทัดที่ 1 (ล็อก)</label>
+          <input id="lcdLine1Fixed" class="lcd-input" value="== STANDBY MODE ==" disabled />
+          <div class="char-counter">20 / 20 ตัวอักษร (แก้ไม่ได้)</div>
+        </div>
+
+        <div class="lcd-line-group">
+          <label>บรรทัดที่ 2</label>
+          <input id="lcdLine2" class="lcd-input" maxlength="20" placeholder="พิมพ์ได้ 20 ตัวอักษร" />
+          <div class="char-counter"><span id="charCount2">0</span> / 20</div>
+        </div>
+
+        <div class="lcd-line-group">
+          <label>บรรทัดที่ 3</label>
+          <input id="lcdLine3" class="lcd-input" maxlength="20" placeholder="พิมพ์ได้ 20 ตัวอักษร" />
+          <div class="char-counter"><span id="charCount3">0</span> / 20</div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="lcdSend" class="btn btn-primary">📤 ส่งเข้า Standby</button>
+          <button id="lcdClear" class="btn btn-danger">🧹 Clear LCD</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="lcd-options">
+          <h2 style="margin:0 0 8px 0;font-size:15px;">⚙️ ตั้งค่าเพิ่มเติม</h2>
+
+          <div class="option-group">
+            <div class="muted" style="margin-bottom:8px;font-weight:800;">โหมด Standby</div>
+            <div class="btn-group">
+              <button id="lcdStandbyOn" class="btn btn-sm">🌙 Standby ON</button>
+              <button id="lcdStandbyOff" class="btn btn-sm btn-ghost">☀️ Standby OFF</button>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <div class="muted" style="margin-bottom:8px;font-weight:800;">เวลานิ่งก่อนกลับ Standby (Mode C)</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="lcdLiveSec" class="lcd-number-input" type="number" min="2" max="60" value="10" style="width:120px"/>
+              <span class="muted">วินาที</span>
+              <button id="lcdLiveSet" class="btn btn-sm">⏱ Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="lcdResult" class="mono small" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
