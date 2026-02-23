@@ -232,3 +232,5 @@ broker.hivemq.com:1883 (Public MQTT Broker)
   - Telemetry ทุก 10 วิ
   - LCD อัปเดต 250ms
   - Telegram cooldown 1.2 วิ
+#   S m a r t - D e s k t o p - A t m o s p h e r e  
+ 
