@@ -253,9 +253,9 @@ bool connectWiFi_NoHardcode(){
   pinMode(WIFI_RESET_PIN, INPUT_PULLUP);
 
   // ตั้งค่า portal/timeout (กันค้างนานเกิน)
-  wm.setConfigPortalTimeout(180);
-  wm.setConnectTimeout(15);
-  wm.setConnectRetries(3);
+  wm.setConfigPortalTimeout(15);   // ลดเวลารอหน้า Portal (กันค้างนาน)
+  wm.setConnectTimeout(10);        // เวลาให้ลองเชื่อม WiFi ต่อรอบ
+  wm.setConnectRetries(1);          // ลดจำนวนรอบ retry เพื่อเข้า Offline ไวขึ้น
 
   String apName = "SmartDesk-Setup";
 
