@@ -18,7 +18,7 @@ const TOPIC_LCD_STANDBY = `smartdesk/${DEVICE_ID}/lcd/standby`; // ✅ retained 
 const TOPIC_RELAY_STATE = `smartdesk/${DEVICE_ID}/relay/state`; // ✅ retained relay state topic
 
 // ====== SIMPLE ADMIN KEY ======
-const ADMIN_KEY = process.env.ADMIN_KEY || "1234";
+const ADMIN_KEY = process.env.ADMIN_KEY || "1234"; // เปลี่ยนค่านี้ใน production และตั้งเป็นตัวแปรแวดล้อม ADMIN_KEY เพื่อความปลอดภัย
 function requireAdmin(req, res, next) {
   const key = req.headers["x-admin-key"];
   if (key !== ADMIN_KEY) return res.status(403).json({ ok: false, error: "Forbidden" });
