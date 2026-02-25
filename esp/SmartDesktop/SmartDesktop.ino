@@ -253,7 +253,7 @@ bool connectWiFi_NoHardcode(){
   pinMode(WIFI_RESET_PIN, INPUT_PULLUP);
 
   // ตั้งค่า portal/timeout (กันค้างนานเกิน)
-  wm.setConfigPortalTimeout(15);   // ลดเวลารอหน้า Portal (กันค้างนาน)
+  wm.setConfigPortalTimeout(180);  // เปิดหน้า Portal ไว้พอให้ตั้งค่า
   wm.setConnectTimeout(10);        // เวลาให้ลองเชื่อม WiFi ต่อรอบ
   wm.setConnectRetries(1);          // ลดจำนวนรอบ retry เพื่อเข้า Offline ไวขึ้น
 

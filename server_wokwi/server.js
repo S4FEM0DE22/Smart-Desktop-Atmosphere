@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // ====== CONFIG ======
 const MQTT_HOST = "mqtt://broker.hivemq.com:1883";
 
-const DEVICE_ID = "ESP32-SDA-WOKWI"; // เปลี่ยนเป็น ID เฉพาะของคุณ (ควรตรงกับที่ ESP32 ใช้)
+const DEVICE_ID = "ESP32-SDA-WOKWI"; // เปลี่ยนเป็น ID ของอุปกรณ์คุณ (ต้องตรงกับที่ ESP32 ใช้ publish)
 const TOPIC_TELEMETRY   = `smartdesk/${DEVICE_ID}/telemetry`;
 const TOPIC_CMD         = `smartdesk/${DEVICE_ID}/cmd`;
 const TOPIC_LCD_STANDBY = `smartdesk/${DEVICE_ID}/lcd/standby`; // ✅ retained state topic
@@ -24,6 +24,73 @@ function requireAdmin(req, res, next) {
   if (key !== ADMIN_KEY) return res.status(403).json({ ok: false, error: "Forbidden" });
   next();
 }
+
+// ====== SIMPLE RATE LIMITER (in-memory) ======
+const rateLimitStore = new Map(); // { ip: { count, timestamp } }
+
+function simpleRateLimit(maxRequests, windowMs) {
+  return (req, res, next) => {
+    const ip = req.ip;
+    const now = Date.now();
+    
+    if (!rateLimitStore.has(ip)) {
+      rateLimitStore.set(ip, { count: 1, timestamp: now });
+      return next();
+    }
+    
+    const record = rateLimitStore.get(ip);
+    
+    // Reset if window expired
+    if (now - record.timestamp > windowMs) {
+      rateLimitStore.set(ip, { count: 1, timestamp: now });
+      return next();
+    }
+    
+    // Within window - check limit
+    if (record.count >= maxRequests) {
+      return res.status(429).json({ ok: false, error: "Too many requests, please try again later." });
+    }
+    
+    record.count++;
+    next();
+  };
+}
+
+function cmdRateLimit(maxRequests, windowMs) {
+  const cmdStore = new Map(); // { adminKey or ip: { count, timestamp } }
+  
+  return (req, res, next) => {
+    const key = req.headers["x-admin-key"] || req.ip;
+    const now = Date.now();
+    
+    if (!cmdStore.has(key)) {
+      cmdStore.set(key, { count: 1, timestamp: now });
+      return next();
+    }
+    
+    const record = cmdStore.get(key);
+    
+    // Reset if window expired
+    if (now - record.timestamp > windowMs) {
+      cmdStore.set(key, { count: 1, timestamp: now });
+      return next();
+    }
+    
+    // Within window - check limit
+    if (record.count >= maxRequests) {
+      return res.status(429).json({ ok: false, error: "Too many commands, please slow down." });
+    }
+    
+    record.count++;
+    next();
+  };
+}
+
+const generalLimiter = simpleRateLimit(100, 30000); // 100 requests per 30 seconds
+const cmdLimiter = cmdRateLimit(20, 30000);         // 20 commands per 30 seconds
+
+// Apply general limiter to all /api routes
+app.use("/api/", generalLimiter);
 
 // ====== DB ======
 const db = new Database("data.db");
@@ -246,6 +313,7 @@ m.on("message", (topic, payload) => {
     seatLastPir = row.pir;
     if (row.pir === 1) {
       seatLastMotionTs = row.ts; // Record last motion timestamp
+      seatAwayMs = 0; // Reset away time when motion detected
     }
 
     if (lastRelay === null) lastRelay = row.relay;
@@ -419,7 +487,7 @@ app.get("/api/lcd/history", (req, res) => {
 });
 
 // ✅ ส่งคำสั่งไป ESP32 ผ่าน MQTT + log + retained standby state
-app.post("/api/cmd", (req, res) => {
+app.post("/api/cmd", cmdLimiter, (req, res) => {
   const { cmd } = req.body || {};
   const v = isValidCmd(cmd);
   if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
