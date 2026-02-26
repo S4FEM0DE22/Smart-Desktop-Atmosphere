@@ -84,7 +84,7 @@
 | **LCD Display** | 20x4 I2C LCD | 1 | แสดงข้อมูลแบบเรียลไทม์ |
 | **WiFi สำหรับ Reset** | Pushbutton | 1 | ล้าง WiFi Config |
 | **Power Supply** | USB 5V 2A | 1 | จ่ายไฟให้ระบบ |
-| **Resistors** | 10kΩ, 100Ω | 5 | Pullup/ป้องกัน |
+| **Resistors** | 10kΩ, 220Ω | 4 | Pullup/ป้องกัน |
 
 ### Pinout (การต่อสาย)
 
